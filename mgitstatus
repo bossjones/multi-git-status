@@ -1,4 +1,32 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+# Autodetect the OS
+detect_OS() {
+  if [ "$(uname)" == "Darwin" ]; then  # macOS
+    echo 'Looks like a macOS'
+    readlink_cmd="greadlink"
+    dirname_cmd="gdirname"
+    gawk_cmd="awk"
+    sed_cmd="gsed"
+    find_cmd="gfind"
+  elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then  # Linux
+    echo 'Looks like linux'
+    readlink_cmd="readlink"
+    dirname_cmd="dirname"
+    gawk_cmd="gawk"
+    sed_cmd="sed"
+    find_cmd="find"
+  elif [ "$(expr substr $OS 1 3)" == "Win" ]; then  # Windows
+    echo 'Looks like windows - hope you have git bash or cygwin otherwise this wont work!'
+    readlink_cmd="readlink"
+    dirname_cmd="dirname"
+    gawk_cmd="gawk"
+    sed_cmd="sed"
+    find_cmd="find"
+  fi
+}
+
+detect_OS
 
 # MIT license
 
@@ -70,7 +98,7 @@ else
 fi
 
 # Find all .git dirs, up to DEPTH levels deep
-find -L "$ROOT_DIR" -maxdepth $DEPTH -type d | while read PROJ_DIR
+$find_cmd -L "$ROOT_DIR" -maxdepth $DEPTH -type d | while read PROJ_DIR
 do
     GIT_DIR="$PROJ_DIR/.git"
 
@@ -96,11 +124,11 @@ do
     # they need a push or pull. We do this with various tests and put the name
     # of the branches in NEEDS_XXXX, seperated by newlines. After we're done,
     # we remove duplicates from NEEDS_XXX.
-    NEEDS_PUSH_BRANCHES="" 
+    NEEDS_PUSH_BRANCHES=""
     NEEDS_PULL_BRANCHES=""
     NEEDS_UPSTREAM_BRANCHES=""
 
-    for REF_HEAD in $(cd "$GIT_DIR/refs/heads" && find . -type 'f' | sed "s/^\.\///"); do
+    for REF_HEAD in $(cd "$GIT_DIR/refs/heads" && $find_cmd . -type 'f' | $sed_cmd "s/^\.\///"); do
         # Check if this branch is tracking an upstream (local/remote branch)
         UPSTREAM=$(git --git-dir "$GIT_DIR" rev-parse --abbrev-ref --symbolic-full-name $REF_HEAD@{u} 2>/dev/null)
         if [ $? -eq 0 ]; then
